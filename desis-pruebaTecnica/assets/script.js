@@ -69,6 +69,14 @@ addEventListener("DOMContentLoaded", function () {
       const bodega = document.getElementById("bodega").value;
       const sucursal = document.getElementById("sucursal").value;
 
+      const materiales = [];
+      if (document.getElementById("plastico").checked) materiales.push(1);
+      if (document.getElementById("metal").checked) materiales.push(2);
+      if (document.getElementById("madera").checked) materiales.push(3);
+      if (document.getElementById("vidrio").checked) materiales.push(4); 
+      if (document.getElementById("textil").checked) materiales.push(5);
+   
+
       const esCodigoValido = validarCodigo(codigo);
       const esNombreValido = validarNombre(nombre);
       const esPrecioValido = validarPrecio(precio);
@@ -86,29 +94,56 @@ addEventListener("DOMContentLoaded", function () {
          esSucursalValida &&
          esCheckboxesValido
       ) {
-         const xhr = new XMLHttpRequest();
-         xhr.open("GET", `http://localhost/desis-pruebaTecnica/verificar_codigo.php?codigo=${codigo}`, true);
-         xhr.onload = function () {
-            if (xhr.status === 200) {
-               const respuesta = JSON.parse(xhr.responseText);
+         const xhrVerificar = new XMLHttpRequest();
+         xhrVerificar.open("GET", `http://localhost/desis-pruebaTecnica/verificar_codigo.php?codigo=${codigo}`, true);
+         xhrVerificar.onload = function () {
+            if (xhrVerificar.status === 200) {
+               const respuesta = JSON.parse(xhrVerificar.responseText);
                if (respuesta.existe) {
                   alert("El código del producto ya está registrado.");
                } else {
-                  document.getElementById("form").submit();
+                  const formData = new FormData();
+                  formData.append("fcode", codigo);
+                  formData.append("fname", nombre);
+                  formData.append("fprecio", precio);
+                  formData.append("Moneda", document.querySelector('select[name="Moneda"]').value);
+                  formData.append("Bodega", bodega);
+                  formData.append("sucursal", sucursal);
+                  formData.append("message", descripcion);
+                  materiales.forEach((material, index) => {
+                     formData.append(`materiales[${index}]`, material);
+                  });
+   
+                  const xhrGuardar = new XMLHttpRequest();
+                  xhrGuardar.open("POST", "http://localhost/desis-pruebaTecnica/guardar_producto.php", true);
+                  xhrGuardar.onload = function () {
+                     if (xhrGuardar.status === 200) {
+                        console.log(xhrGuardar.responseText);
+                        alert("Producto guardado correctamente.");
+                     } else {
+                        console.error("Error:", xhrGuardar.statusText);
+                        alert("Error al guardar el producto.");
+                     }
+                  };
+                  xhrGuardar.onerror = function () {
+                     console.error("Error de red");
+                     alert("Error de red al guardar el producto.");
+                  };
+                  xhrGuardar.send(formData);
                }
             } else {
-               console.error("Error:", xhr.statusText);
+               console.error("Error:", xhrVerificar.statusText);
             }
          };
-         xhr.onerror = function () {
+         xhrVerificar.onerror = function () {
             console.error("Error de red");
          };
-         xhr.send();
+         xhrVerificar.send();
       } else {
-         return
+         console.log("Por favor, complete correctamente todos los campos.");
       }
    });
-});
+})
 
 function validarCodigo(codigo) {
    if (codigo.length === 0) {
@@ -175,7 +210,11 @@ function contarCheckboxesMarcados() {
 }
 
 function validarCheckboxes() {
-   return contarCheckboxesMarcados() >= 2;
+   if (contarCheckboxesMarcados() < 2) {
+      alert("Debe seleccionar al menos dos materiales para el producto.");
+      return false;
+   }
+   return true;
 }
 
 function validarDescripcion(descr) {

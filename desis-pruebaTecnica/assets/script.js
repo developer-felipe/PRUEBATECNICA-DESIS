@@ -120,6 +120,7 @@ addEventListener("DOMContentLoaded", function () {
                      if (xhrGuardar.status === 200) {
                         console.log(xhrGuardar.responseText);
                         alert("Producto guardado correctamente.");
+                        window.location.reload()
                      } else {
                         console.error("Error:", xhrGuardar.statusText);
                         alert("Error al guardar el producto.");
